@@ -24,6 +24,7 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (taskId: number) => void;
   onStatusChange?: (taskId: number, status: Task['status']) => void;
+  onClick?: (task: Task) => void;
   draggable?: boolean;
 }
 
@@ -40,7 +41,7 @@ const STATUS_OPTIONS: { value: Task['status']; label: string }[] = [
   { value: 'done', label: 'Готово' }
 ];
 
-export default function TaskCard({ task, canEdit, onEdit, onDelete, onStatusChange, draggable: isDraggable }: TaskCardProps) {
+export default function TaskCard({ task, canEdit, onEdit, onDelete, onStatusChange, onClick, draggable: isDraggable }: TaskCardProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -52,6 +53,8 @@ export default function TaskCard({ task, canEdit, onEdit, onDelete, onStatusChan
     <div
       className={`task-card ${isDragging ? 'task-card--dragging' : ''}`}
       draggable={isDraggable}
+      onClick={() => onClick?.(task)}
+      style={{ cursor: onClick ? 'pointer' : undefined }}
       onDragStart={(e) => {
         e.dataTransfer.setData('taskId', String(task.id));
         e.dataTransfer.effectAllowed = 'move';

@@ -4,6 +4,7 @@ import apiClient from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 import TaskCard, { Task } from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
+import TaskDetailModal from '../components/TaskDetailModal';
 import MemberList, { Member } from '../components/MemberList';
 
 interface GroupDetail {
@@ -42,6 +43,7 @@ export default function GroupPage() {
   const [priorityFilter, setPriorityFilter] = useState('');
   const [taskModal, setTaskModal] = useState<{ open: boolean; task?: Task | null }>({ open: false });
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [error, setError] = useState('');
   const [dragOverStatus, setDragOverStatus] = useState<Task['status'] | null>(null);
 
@@ -270,6 +272,7 @@ export default function GroupPage() {
                             task={task}
                             canEdit={canEdit}
                             draggable={canChangeStatus(task)}
+                            onClick={(t) => setDetailTask(t)}
                             onEdit={(t) => setTaskModal({ open: true, task: t })}
                             onDelete={(tid) => setConfirmDelete(tid)}
                             onStatusChange={canChangeStatus(task) ? handleStatusChange : undefined}
@@ -284,6 +287,16 @@ export default function GroupPage() {
           </div>
         </div>
       </div>
+
+      {/* Task detail modal */}
+      {detailTask && (
+        <TaskDetailModal
+          task={detailTask}
+          canEdit={canEdit}
+          onEdit={(t) => { setDetailTask(null); setTaskModal({ open: true, task: t }); }}
+          onClose={() => setDetailTask(null)}
+        />
+      )}
 
       {/* Task modal */}
       {taskModal.open && (
