@@ -39,6 +39,18 @@ router.post('/read-all', (req: AuthRequest, res: Response): void => {
   res.json({ ok: true });
 });
 
+// PATCH /api/notifications/:id/read — mark one as read
+router.patch('/:id/read', (req: AuthRequest, res: Response): void => {
+  const notifId = parseInt(req.params.id);
+  const row = db.prepare('SELECT id FROM notifications WHERE id = ? AND user_id = ?').get(notifId, req.user!.id) as any;
+  if (!row) {
+    res.status(404).json({ error: 'Notification not found' });
+    return;
+  }
+  db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(notifId);
+  res.json({ ok: true });
+});
+
 // DELETE /api/notifications/:id — delete one
 router.delete('/:id', (req: AuthRequest, res: Response): void => {
   const notifId = parseInt(req.params.id);

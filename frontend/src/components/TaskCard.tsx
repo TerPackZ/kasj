@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Avatar from './Avatar';
 
 export interface Task {
@@ -23,6 +24,7 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (taskId: number) => void;
   onStatusChange?: (taskId: number, status: Task['status']) => void;
+  draggable?: boolean;
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -38,14 +40,25 @@ const STATUS_OPTIONS: { value: Task['status']; label: string }[] = [
   { value: 'done', label: 'Готово' }
 ];
 
-export default function TaskCard({ task, canEdit, onEdit, onDelete, onStatusChange }: TaskCardProps) {
+export default function TaskCard({ task, canEdit, onEdit, onDelete, onStatusChange, draggable: isDraggable }: TaskCardProps) {
+  const [isDragging, setIsDragging] = useState(false);
+
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     e.stopPropagation();
     onStatusChange?.(task.id, e.target.value as Task['status']);
   };
 
   return (
-    <div className="task-card">
+    <div
+      className={`task-card ${isDragging ? 'task-card--dragging' : ''}`}
+      draggable={isDraggable}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('taskId', String(task.id));
+        e.dataTransfer.effectAllowed = 'move';
+        setIsDragging(true);
+      }}
+      onDragEnd={() => setIsDragging(false)}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
         <p className="task-card__title">{task.title}</p>
         {canEdit && (

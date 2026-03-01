@@ -43,6 +43,7 @@ export default function GroupPage() {
   const [taskModal, setTaskModal] = useState<{ open: boolean; task?: Task | null }>({ open: false });
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [dragOverStatus, setDragOverStatus] = useState<Task['status'] | null>(null);
 
   const fetchGroup = useCallback(async () => {
     try {
@@ -230,7 +231,25 @@ export default function GroupPage() {
               {COLUMNS.map((col) => {
                 const colTasks = tasksByStatus(col.status);
                 return (
-                  <div key={col.status} className="kanban-column">
+                  <div
+                    key={col.status}
+                    className={`kanban-column ${dragOverStatus === col.status ? 'kanban-column--drag-over' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverStatus(col.status); }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        setDragOverStatus(null);
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverStatus(null);
+                      const taskId = parseInt(e.dataTransfer.getData('taskId'));
+                      const task = tasks.find((t) => t.id === taskId);
+                      if (task && task.status !== col.status && canChangeStatus(task)) {
+                        handleStatusChange(taskId, col.status);
+                      }
+                    }}
+                  >
                     <div className="kanban-column__header">
                       <div className="kanban-column__title">
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.color, flexShrink: 0, display: 'inline-block' }} />
@@ -250,6 +269,7 @@ export default function GroupPage() {
                             key={task.id}
                             task={task}
                             canEdit={canEdit}
+                            draggable={canChangeStatus(task)}
                             onEdit={(t) => setTaskModal({ open: true, task: t })}
                             onDelete={(tid) => setConfirmDelete(tid)}
                             onStatusChange={canChangeStatus(task) ? handleStatusChange : undefined}

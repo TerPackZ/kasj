@@ -19,7 +19,11 @@ const TYPE_ICON: Record<Notification['type'], string> = {
 };
 
 function timeAgo(dateStr: string): string {
-  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  // SQLite CURRENT_TIMESTAMP stores UTC without timezone suffix — force UTC parsing
+  const utc = dateStr.includes('Z') || dateStr.includes('+')
+    ? dateStr
+    : dateStr.replace(' ', 'T') + 'Z';
+  const diff = (Date.now() - new Date(utc).getTime()) / 1000;
   if (diff < 60) return 'только что';
   if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
@@ -90,6 +94,17 @@ export default function NotificationPanel({ onUnreadChange }: Props) {
     onUnreadChange(0);
   }
 
+  async function handleReadOne(id: number) {
+    const notif = notifications.find((n) => n.id === id);
+    if (!notif || notif.is_read) return;
+    await apiClient.patch(`/api/notifications/${id}/read`);
+    const updated = notifications.map((n) => n.id === id ? { ...n, is_read: true } : n);
+    setNotifications(updated);
+    const unread = updated.filter((n) => !n.is_read).length;
+    setUnreadCount(unread);
+    onUnreadChange(unread);
+  }
+
   async function handleDelete(id: number) {
     await apiClient.delete(`/api/notifications/${id}`);
     const updated = notifications.filter((n) => n.id !== id);
@@ -137,7 +152,13 @@ export default function NotificationPanel({ onUnreadChange }: Props) {
               </div>
             ) : (
               notifications.map((n) => (
-                <div key={n.id} className={`notif-item ${!n.is_read ? 'notif-item--unread' : ''}`}>
+                <div
+                  key={n.id}
+                  className={`notif-item ${!n.is_read ? 'notif-item--unread' : ''}`}
+                  style={{ cursor: !n.is_read ? 'pointer' : 'default' }}
+                  onClick={() => handleReadOne(n.id)}
+                  title={!n.is_read ? 'Нажмите, чтобы отметить как прочитанное' : undefined}
+                >
                   <span className="notif-item__icon">{TYPE_ICON[n.type] ?? '📌'}</span>
                   <div className="notif-item__body">
                     <div className="notif-item__title">{n.title}</div>
@@ -146,7 +167,7 @@ export default function NotificationPanel({ onUnreadChange }: Props) {
                   </div>
                   <button
                     className="notif-item__close"
-                    onClick={() => handleDelete(n.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
                     title="Удалить"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
